@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+set -x
+
+pandoc --latex-engine=xelatex --toc -V lang=french -V geometry:margin=1in -o apprendre-python3.pdf `cat index`
