@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+
+import re
+import sys
+import os
+import shutil
+import unicodedata
+
+ROOT = 'src'
+FILE = 'apprendre-python3.md'
+
+class Lines:
+    'Lines producer'
+    def __init__(self, lines):
+        self.lines = list(reversed(lines))
+    def __len__(self):
+        return len(self.lines)
+    def pop(self):
+        return self.lines.pop()
+    def peek(self):
+        return self.lines[-1]
+
+def slugify(s):
+    'make a slug of a string'
+    s = re.sub('\W+', '_', s)
+    s = s.lower()
+    s = ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+    return s
+
+os.mkdir(ROOT)
+with open(FILE, 'r') as f:
+    content = f.read()
+lines = Lines(content.splitlines())
+
+chapter_regexp = re.compile('^=====+$')
+section_regexp = re.compile('^-----+$')
+title_sub = re.compile(r'\s*{.+}\s*$')
+
+chapters = []
+last_line = None
+chapter = None
+section = None
+
+while lines:
+    line = lines.pop()
+    if lines and chapter_regexp.match(lines.peek()):
+        line = title_sub.sub('', line)
+        lines.pop()
+        slug = slugify(line)
+        section = {'id': slug, 'lines': ['# {}'.format(line)]}
+        chapter = {'id': slug, 'sections': [section]}
+        chapters.append(chapter)
+    elif lines and chapter and section_regexp.match(lines.peek()):
+        line = title_sub.sub('', line)
+        lines.pop()
+        section = {'id': slugify(line), 'lines': ['## {}'.format(line)]}
+        chapter['sections'].append(section)
+    elif section:
+        section['lines'].append(line)
+    else: # line out of a section
+        print('Line out of a section: {!r}'.format(line), file=sys.stderr)
+
+with open('index', 'w') as index:
+    for chapter in chapters:
+        chapter['dir'] = os.path.join(ROOT, chapter['id'])
+        os.mkdir(chapter['dir'])
+        print(chapter['id'])
+        for section in chapter['sections']:
+            section['file'] = os.path.join(chapter['dir'], section['id']) + '.md'
+            print(section['file'], file=index)
+            with open(section['file'], 'w') as f:
+                for line in section['lines']:
+                    print(line, file=f)
+            print('\t', section['id'], len(section['lines']))
