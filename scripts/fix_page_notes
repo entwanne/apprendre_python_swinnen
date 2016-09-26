@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+import re
+from utils import get_index, source_files
+
+notedef_tag = re.compile(r'^\((\d+)\)') # (xx)
+usenote_tag = re.compile(r'\^\[\((\d+)\)\]\(.+?\)\^') # ^[xx](...)^
+spaces = re.compile(r'\\?\s+', re.MULTILINE)
+up_tag = re.compile(r"\[Retour à l'article\]\(.+?\)")
+
+notes = {}
+current_note = None
+keep_lines = []
+
+last_filename = get_index()[-1]
+
+with open(last_filename, 'r') as f:
+    for line in f:
+        match = notedef_tag.match(line)
+        if match:
+            current_note = match.group(1)
+            notes[current_note] = line[match.end():]
+        elif current_note:
+            notes[current_note] += line
+        else:
+            keep_lines.append(line)
+with open(last_filename, 'w') as f:
+    f.write(''.join(keep_lines))
+
+def clean_note(note):
+    note = spaces.sub(' ', note)
+    note = up_tag.sub('', note)
+    return note.strip()
+notes = {key: clean_note(note) for (key, note) in notes.items()}
+
+for f in source_files:
+    lines = []
+    used_notes = []
+    for line in f:
+        for match in usenote_tag.finditer(line):
+            used_notes.append(match.group(1))
+        line = usenote_tag.sub(r'[^note_\1]', line)
+        lines.append(line)
+    for used_note in used_notes:
+        lines.append('\n[^note_{}]: {}\n'.format(used_note, notes[used_note]))
+    source_files.send(''.join(lines))
