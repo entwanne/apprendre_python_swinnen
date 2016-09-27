@@ -6,3 +6,4 @@ dir=$(dirname $0)
 
 $dir/split
 $dir/clean_code_tags
+$dir/clean_html_tags
