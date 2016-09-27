@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+
+from utils import source_files
+
+for f in source_files:
+    lines = []
+    code = False
+    for line in f:
+        if line.startswith('```'):
+            code = not code
+            line = '```{}\n'.format('python' if code else '')
+        lines.append(line)
+    source_files.send(''.join(lines))

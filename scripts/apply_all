@@ -5,3 +5,4 @@ set -x
 dir=$(dirname $0)
 
 $dir/split
+$dir/clean_code_tags
