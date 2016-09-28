@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+import re
+from utils import source_files
+
+# **<span style="color:#000080;">...</span>**
+code_tag = re.compile(r'\*\*<span\s+style="color:#000080;">(.+?)</span>\*\*', re.MULTILINE)
+# backslash + character
+escape = re.compile(r'\\(.)')
+
+for f in source_files:
+    content = f.read()
+    parts = code_tag.split(content)
+    code = False
+    nparts = []
+    for part in parts:
+        if code:
+            part = escape.sub(r'\1', part)
+        nparts.append(part)
+        code = not code
+    source_files.send('`'.join(nparts))
