@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+
+import json
+import sys
+import os.path
+import re
+from collections import OrderedDict
+from zipfile import ZipFile
+from utils import source_files
+
+archive_name = 'apprendre-python3.zip'
+
+manifest = {
+    'object': 'container',
+    'slug': 'apprendre-python3',
+    'title': 'Apprendre à programmer avec Python 3',
+    'version': 2,
+    'description': "Adaptation du célèbre cours de Gérard Swinnen sur l'apprentissage de la programmation avec Python 3",
+    'type': 'TUTORIAL',
+    'licence': 'CC BY-NC-SA'
+}
+
+trans = str.maketrans('','','#*_`\n')
+
+def reduce_title_level(line):
+    if line.startswith('###'):
+        return line[2:]
+    return line
+
+# ![...](images/...)
+img_pattern = re.compile(r'!\[(.*?)\]\((images/.+?)\)', re.MULTILINE)
+def image_archive(line):
+    return img_pattern.sub(r'![\1](archive:\2)', line)
+
+with ZipFile(archive_name, 'w') as archive:
+    parts = OrderedDict()
+    for f in source_files:
+        section = f.name
+        *_, part_name, sec_name = section.split('/')
+        sec_name, _ = os.path.splitext(sec_name)
+        part = parts.setdefault(part_name, {'object': 'container', 'slug': part_name, 'title': part_name, 'children': []})
+
+        title = next(f).translate(trans).strip()
+        content = ''.join(image_archive(reduce_title_level(line)) for line in f)
+        archive.writestr(section, content)
+
+        if sec_name == part_name: # introduction
+            part['introduction'] = section
+            part['title'] = title
+        else: # normal section
+            part['children'].append({'object': 'extract', 'slug': sec_name, 'title': title, 'text': section})
+    manifest['children'] = list(parts.values())
+    archive.writestr('manifest.json', json.dumps(manifest, indent=4))

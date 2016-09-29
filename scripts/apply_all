@@ -9,3 +9,4 @@ $dir/fix_inline_code_tags
 $dir/clean_code_tags
 $dir/clean_html_tags
 $dir/fix_page_notes
+$dir/gen_archive
